@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    
+    <!-- Tab Navigation Controls -->
+    <div class="tabs-container">
+        <button class="tab-btn active" id="tab-url-btn" onclick="switchTab('url')">
+            <i class="fa-solid fa-link"></i> URL Phishing Link Scan
+        </button>
+        <button class="tab-btn" id="tab-msg-btn" onclick="switchTab('message')">
+            <i class="fa-solid fa-envelope-open-text"></i> Message Scam Check
+        </button>
+    </div>
+
+    <!-- Main Scanner Grid -->
+    <div class="grid-2" style="align-items: start; gap: 1.75rem;">
+        
+        <!-- Left Side: Form Controls Card -->
+        <div class="dash-card">
+            
+            <!-- URL SCAN PANEL -->
+            <div id="url-scan-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h3 style="font-size: 1.35rem; color: var(--text-dark);"><i class="fa-solid fa-link" style="color: var(--color-primary);"></i> URL Analyzer</h3>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.25rem;">Enter a web link to scan for redirection issues, brand spoofing, and certificate validity.</p>
+
+                <!-- Quick Samples Triggers -->
+                <div style="margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">Samples:</span>
+                    <button type="button" class="btn-sample" onclick="loadSampleUrl('urlPhishing')">Phishing Link</button>
+                    <button type="button" class="btn-sample" onclick="loadSampleUrl('urlSuspicious')">IP Host</button>
+                    <button type="button" class="btn-sample" onclick="loadSampleUrl('urlLegitimate')">Safe Link</button>
+                </div>
+                
+                <form id="url-scan-form" onsubmit="handleUrlScanSubmit(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="url-input">Website URL Link</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-globe input-icon"></i>
+                            <input type="text" class="form-input has-icon" id="url-input" placeholder="https://secure-login-bank.com/signin" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                        <i class="fa-solid fa-shield-halved"></i> Run Phishing Scan
+                    </button>
+                </form>
+            </div>
+
+            <!-- MSG SCAN PANEL -->
+            <div id="msg-scan-panel" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h3 style="font-size: 1.35rem; color: var(--text-dark);"><i class="fa-solid fa-envelope-open-text" style="color: var(--risk-high);"></i> SMS & Email Analyzer</h3>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.25rem;">Paste any suspicious text message to scan for urgent phrasing and fraudulent requests.</p>
+                
+                <!-- Quick Samples Triggers -->
+                <div style="margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">Samples:</span>
+                    <button type="button" class="btn-sample" onclick="loadSampleMsg('msgScamBank')">Bank Scam SMS</button>
+                    <button type="button" class="btn-sample" onclick="loadSampleMsg('msgScamCrypto')">Crypto Prize</button>
+                    <button type="button" class="btn-sample" onclick="loadSampleMsg('msgSafe')">Safe Message</button>
+                </div>
+
+                <form id="msg-scan-form" onsubmit="handleMsgScanSubmit(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="msg-input">Message Content</label>
+                        <textarea class="form-input scanner-textarea" id="msg-input" placeholder="URGENT: Your mobile bank account has been suspended! Tap here to verify identity within 24 hours: http://bank-verify.info" required></textarea>
+                        <div style="text-align: right; font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;" id="char-count">0 / 5000 chars</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                        <i class="fa-solid fa-magnifying-glass-chart"></i> Run Scam Check
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Side: Real-Time Results Card -->
+        <div class="dash-card" id="result-card" style="display: flex; flex-direction: column; min-height: 440px; justify-content: center; position: relative;">
+            
+            <!-- Result Waiting State -->
+            <div id="result-placeholder" style="text-align: center; padding: 2rem;">
+                <div style="font-size: 3.5rem; color: #cbd5e1; margin-bottom: 1.25rem;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h4 style="font-size: 1.25rem; margin-bottom: 0.35rem; color: var(--text-dark);">Waiting for scan input</h4>
+                <p style="color: var(--text-secondary); font-size: 0.875rem; max-width: 270px; margin: 0 auto;">Input a link or message on the left or load a preset sample to see real-time security results.</p>
+            </div>
+
+            <!-- Loading Spinner State -->
+            <div id="result-loading" style="display: none; text-align: center; padding: 3rem;">
+                <div style="font-size: 3rem; color: var(--color-primary); margin-bottom: 1.25rem; animation: spin 1.2s linear infinite;">
+                    <i class="fa-solid fa-circle-notch"></i>
+                </div>
+                <h4 style="font-size: 1.25rem; margin-bottom: 0.35rem; color: var(--text-dark);">Running AI Security Check</h4>
+                <p style="color: var(--text-secondary); font-size: 0.875rem;">Extracting domain features & running NLP vector analysis...</p>
+            </div>
+
+            <!-- Active Result View -->
+            <div id="result-active" style="display: none; width: 100%;">
+                
+                <!-- Circular Risk Gauge -->
+                <div class="gauge-box">
+                    <div class="circular-gauge">
+                        <svg>
+                            <circle class="bg-circle" cx="80" cy="80" r="60"></circle>
+                            <circle class="val-circle" id="gauge-stroke" cx="80" cy="80" r="60" stroke-dasharray="377" stroke-dashoffset="377"></circle>
+                        </svg>
+                        <div class="gauge-percentage">
+                            <span id="risk-score-value">0%</span>
+                            <span class="gauge-label">Risk Score</span>
+                        </div>
+                    </div>
+
+                    <div class="risk-badge" id="result-risk-badge">
+                        <i class="fa-solid fa-shield-check"></i> <span>Safe</span>
+                    </div>
+                </div>
+
+                <!-- Highlighted Text Phrase Container -->
+                <div id="highlighted-msg-container" style="display: none; background: #fff1f2; border: 1px solid #fecdd3; padding: 1rem; border-radius: 10px; font-size: 0.9rem; margin-bottom: 1.25rem; color: #9f1239;"></div>
+
+                <!-- Explainable Indicators Breakdown -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                        <h4 style="font-size: 0.95rem; color: var(--text-dark);">
+                            <i class="fa-solid fa-circle-info" style="color: var(--color-primary);"></i> Security Audit Indicators
+                        </h4>
+                        <button type="button" class="btn btn-secondary" onclick="copyReportToClipboard()" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;">
+                            <i class="fa-solid fa-copy"></i> Copy Audit Report
+                        </button>
+                    </div>
+                    
+                    <div id="factor-list-container"></div>
+                </div>
+            </div>
+
+            <style>
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            </style>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered detector for phishing URLs and scam messages using explainable machine learning.">
+    <title>🛡️ PhishGuard AI — Security & Threat Intelligence</title>
+    <!-- Icons and Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Master Dashboard Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- Master Sidebar -->
+        <aside class="app-sidebar">
+            <a href="/" class="sidebar-brand" title="PhishGuard AI">
+                <i class="fa-solid fa-shield-halved"></i>
+            </a>
+
+            <div class="sidebar-menu">
+                <div class="sidebar-item {% if active_page == 'home' %}active{% endif %}">
+                    <a href="/"><i class="fa-solid fa-house"></i></a>
+                    <span class="tooltip">Home Overview</span>
+                </div>
+                <div class="sidebar-item {% if active_page == 'dashboard' %}active{% endif %}">
+                    <a href="/dashboard"><i class="fa-solid fa-chart-line"></i></a>
+                    <span class="tooltip">Security Dashboard</span>
+                </div>
+                <div class="sidebar-item {% if active_page == 'analyze' %}active{% endif %}">
+                    <a href="/analyze"><i class="fa-solid fa-magnifying-glass-chart"></i></a>
+                    <span class="tooltip">Run Link & Text Scan</span>
+                </div>
+                <div class="sidebar-item {% if active_page == 'history' %}active{% endif %}">
+                    <a href="/history"><i class="fa-solid fa-clock-rotate-left"></i></a>
+                    <span class="tooltip">Scan History Audit</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Master Main Container -->
+        <div class="app-main">
+            <!-- Master Topbar -->
+            <header class="app-topbar">
+                <div class="topbar-brand-title">
+                    <div>
+                        <h1>PHISHGUARD AI</h1>
+                        <div class="topbar-subtitle">Real-Time Threat Intelligence & Scam Detection</div>
+                    </div>
+                </div>
+
+                <div class="topbar-nav-items">
+                    <span class="status-pill" style="margin-right: 0.75rem;">
+                        <span class="status-dot"></span> AI Engine Online
+                    </span>
+
+                    <a href="/" class="topbar-link {% if active_page == 'home' %}active{% endif %}">
+                        <i class="fa-solid fa-house"></i> Home
+                    </a>
+                    <a href="/dashboard" class="topbar-link {% if active_page == 'dashboard' %}active{% endif %}">
+                        <i class="fa-solid fa-chart-line"></i> Dashboard
+                    </a>
+                    <a href="/analyze" class="topbar-link {% if active_page == 'analyze' %}active{% endif %}">
+                        <i class="fa-solid fa-magnifying-glass-chart"></i> Analyze
+                    </a>
+                    <a href="/history" class="topbar-link {% if active_page == 'history' %}active{% endif %}">
+                        <i class="fa-solid fa-clock-rotate-left"></i> History
+                    </a>
+
+                    {% if current_user.is_authenticated %}
+                        <span style="color: var(--text-secondary); font-size: 0.85rem; margin-left: 0.5rem;">
+                            <i class="fa-regular fa-circle-user"></i> {{ current_user.email }}
+                        </span>
+                        <a href="/logout" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                            <i class="fa-solid fa-right-from-bracket"></i> Logout
+                        </a>
+                    {% else %}
+                        <a href="/login" class="topbar-link {% if active_page == 'login' %}active{% endif %}">
+                            <i class="fa-solid fa-right-to-bracket"></i> Login
+                        </a>
+                        <a href="/register" class="btn btn-primary" style="padding: 0.45rem 1rem; font-size: 0.85rem;">
+                            Sign Up
+                        </a>
+                    {% endif %}
+                </div>
+            </header>
+
+            <!-- Page Body -->
+            <main class="app-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    <div style="margin-bottom: 1.5rem;">
+                      {% for category, message in messages %}
+                        <div class="dash-card" style="padding: 1rem 1.25rem; border-color: {% if category == 'error' %}var(--risk-high){% else %}var(--risk-low){% endif %}; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                          <i class="fa-solid {% if category == 'error' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}" style="color: {% if category == 'error' %}var(--risk-high){% else %}var(--risk-low){% endif %};"></i>
+                          <span>{{ message }}</span>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Unified Footer -->
+            <footer class="app-footer">
+                <p>&copy; 2026 PhishGuard AI — Explainable Cyber Threat Intelligence. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Global Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

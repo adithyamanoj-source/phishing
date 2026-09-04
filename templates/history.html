@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+
+    <!-- Audit Header Bar -->
+    <div style="margin-bottom: 1.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-size: 1.85rem; font-family: 'Outfit', sans-serif; font-weight: 800; color: var(--text-dark); margin-bottom: 0.2rem;">Security Audit Logs</h1>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Review, search, filter, and export past threat assessments.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="exportHistoryData()" style="color: var(--color-primary);">
+                <i class="fa-solid fa-file-export"></i> Export JSON Logs
+            </button>
+            <button class="btn btn-secondary" onclick="clearAllHistory()" id="clear-all-btn" style="color: var(--risk-high);">
+                <i class="fa-solid fa-trash-can"></i> Clear All Logs
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Stats Cards -->
+    <div class="grid-3" style="margin-bottom: 1.75rem;">
+        <div class="dash-card" style="padding: 1.25rem 1.5rem; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 id="stat-total" style="font-size: 2.25rem; font-family: 'Outfit', sans-serif; font-weight: 800; color: var(--text-dark); line-height: 1;">0</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 700; margin-top: 0.25rem;">Total Scans Conducted</p>
+            </div>
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--color-primary-light); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fa-solid fa-chart-bar"></i>
+            </div>
+        </div>
+
+        <div class="dash-card" style="padding: 1.25rem 1.5rem; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 id="stat-high" style="font-size: 2.25rem; font-family: 'Outfit', sans-serif; font-weight: 800; color: var(--risk-high); line-height: 1;">0</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 700; margin-top: 0.25rem;">High Risk Threats</p>
+            </div>
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--risk-high-bg); color: var(--risk-high); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+        </div>
+
+        <div class="dash-card" style="padding: 1.25rem 1.5rem; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 id="stat-safe" style="font-size: 2.25rem; font-family: 'Outfit', sans-serif; font-weight: 800; color: var(--risk-low); line-height: 1;">0</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 700; margin-top: 0.25rem;">Safe Verifications</p>
+            </div>
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--risk-low-bg); color: var(--risk-low); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fa-solid fa-shield-heart"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Search Controls Card -->
+    <div class="dash-card" style="padding: 1.25rem 1.75rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: flex-end;">
+            
+            <div style="flex: 2; min-width: 200px;">
+                <label class="form-label" style="margin-bottom: 0.3rem;" for="history-search">Search Content</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass input-icon"></i>
+                    <input type="text" class="form-input has-icon" id="history-search" placeholder="Filter by URL or phrase..." oninput="applyFilters()" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
+                </div>
+            </div>
+
+            <div style="flex: 1; min-width: 140px;">
+                <label class="form-label" style="margin-bottom: 0.3rem;" for="filter-type">Scan Type</label>
+                <select class="form-input" id="filter-type" style="padding: 0.5rem 1rem;" onchange="applyFilters()">
+                    <option value="all">All Scans</option>
+                    <option value="url">URLs Only</option>
+                    <option value="message">Messages Only</option>
+                </select>
+            </div>
+
+            <div style="flex: 1; min-width: 140px;">
+                <label class="form-label" style="margin-bottom: 0.3rem;" for="filter-risk">Risk Level</label>
+                <select class="form-input" id="filter-risk" style="padding: 0.5rem 1rem;" onchange="applyFilters()">
+                    <option value="all">All Risks</option>
+                    <option value="low">Low Risk (Safe)</option>
+                    <option value="medium">Medium Risk</option>
+                    <option value="high">High Risk (Threat)</option>
+                </select>
+            </div>
+
+            <div style="flex: 1; min-width: 140px;">
+                <label class="form-label" style="margin-bottom: 0.3rem;" for="filter-sort">Sort Order</label>
+                <select class="form-input" id="filter-sort" style="padding: 0.5rem 1rem;" onchange="applyFilters()">
+                    <option value="date_desc">Newest First</option>
+                    <option value="date_asc">Oldest First</option>
+                    <option value="risk_desc">Highest Risk</option>
+                </select>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="dash-card" style="padding: 0.5rem 1rem 1rem 1rem;">
+        <div class="table-responsive">
+            <table class="scan-table">
+                <thead>
+                    <tr>
+                        <th style="width: 160px;">Date & Time</th>
+                        <th style="width: 70px; text-align: center;">Type</th>
+                        <th>Scan Content Preview</th>
+                        <th style="width: 120px; text-align: center;">Risk Score</th>
+                        <th style="width: 140px; text-align: center;">Classification</th>
+                        <th style="width: 70px; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table-body"></tbody>
+            </table>
+        </div>
+
+        <div id="history-empty" style="display: none; text-align: center; padding: 4rem 2rem;">
+            <div style="font-size: 3.5rem; color: #cbd5e1; margin-bottom: 1rem;">
+                <i class="fa-solid fa-folder-open"></i>
+            </div>
+            <h4 style="font-size: 1.15rem; color: var(--text-dark); margin-bottom: 0.25rem;">No matching scan logs found</h4>
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">Modify your search query or run a scan to record audit history.</p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

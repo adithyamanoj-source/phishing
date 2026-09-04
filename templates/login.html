@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 2rem auto 3rem auto;">
+    <div class="dash-card">
+        
+        <div style="text-align: center; margin-bottom: 1.75rem;">
+            <div style="width: 54px; height: 54px; border-radius: 14px; background: var(--color-primary-light); color: var(--color-primary); display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h2 style="font-size: 1.6rem; color: var(--text-dark); margin-bottom: 0.25rem;">Welcome Back</h2>
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">Sign in to your PhishGuard account to access security audit logs.</p>
+        </div>
+
+        <form action="/login" method="POST" id="login-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+
+            <div class="form-group">
+                <label class="form-label" for="login-email">Email Address</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-envelope input-icon"></i>
+                    <input type="email" class="form-input has-icon" id="login-email" name="email" placeholder="name@company.com" required>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <label class="form-label" for="login-password" style="margin-bottom: 0;">Password</label>
+                    <a href="#" onclick="showToast('Password reset link sent to registered email address.', 'info')" style="font-size: 0.8rem; color: var(--color-primary); text-decoration: none; font-weight: 600;">Forgot Password?</a>
+                </div>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-key input-icon"></i>
+                    <input type="password" class="form-input has-icon" id="login-password" name="password" placeholder="••••••••" required style="padding-right: 3rem;">
+                    <button type="button" onclick="togglePasswordVisibility('login-password', this)" style="position: absolute; right: 1rem; background: transparent; border: none; color: var(--text-muted); cursor: pointer;">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.8rem;">
+                <i class="fa-solid fa-right-to-bracket"></i> Sign In
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                New to PhishGuard? <a href="/register" style="font-weight: 700; color: var(--color-primary); text-decoration: none;">Create an account</a>
+            </p>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Health Dashboard — PhishGuard AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+
+<div class="dashboard-layout">
+    <!-- Sidebar with functional links & tooltips -->
+    <div class="sidebar">
+        <a href="/" class="sidebar-logo" title="PhishGuard Home">
+            <i class="fa-solid fa-shield-halved"></i>
+        </a>
+        <div class="sidebar-menu">
+            <div class="sidebar-item">
+                <a href="/"><i class="fa-solid fa-house"></i></a>
+                <span class="tooltip">Home Overview</span>
+            </div>
+            <div class="sidebar-item active">
+                <a href="/dashboard"><i class="fa-solid fa-chart-line"></i></a>
+                <span class="tooltip">Security Dashboard</span>
+            </div>
+            <div class="sidebar-item">
+                <a href="/analyze"><i class="fa-solid fa-magnifying-glass-chart"></i></a>
+                <span class="tooltip">Run Link & Text Scan</span>
+            </div>
+            <div class="sidebar-item">
+                <a href="/history"><i class="fa-solid fa-clock-rotate-left"></i></a>
+                <span class="tooltip">Scan History Audit</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-area">
+        <!-- Topbar Navigation -->
+        <div class="topbar">
+            <div class="topbar-title">
+                <h1>SECURITY HEALTH DASHBOARD</h1>
+                <div class="topbar-subtitle">System Resilience & Threat Vector Audit</div>
+            </div>
+            <div class="topbar-actions">
+                <div class="search-box">
+                    <input type="text" id="dash-search-input" placeholder="Search security metrics..." oninput="handleDashSearch(this)">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                <button class="icon-btn has-notification" onclick="alert('📢 Security Alert: All systems operational. 0 active phishing breaches detected in the last 24 hours.')" title="Notifications">
+                    <i class="fa-regular fa-bell"></i>
+                </button>
+                <a href="/analyze" class="icon-btn" title="Launch Scanner">
+                    <i class="fa-solid fa-bolt" style="color: #2563eb;"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Dashboard Body Content -->
+        <div class="dashboard-content">
+            
+            <!-- Non-Technical Plain-English Banner -->
+            <div class="explainer-banner">
+                <div class="explainer-banner-text">
+                    <h3><i class="fa-solid fa-circle-info"></i> How to Read Your Security Health</h3>
+                    <p>Your <b>Security Score (85/100)</b> reflects your organization's defenses. Hover over any circle below to see a plain-English explanation of each threat vector.</p>
+                </div>
+                <a href="/analyze" style="background: #2563eb; color: white; padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 700; text-decoration: none; white-space: nowrap; font-size: 0.85rem;">
+                    <i class="fa-solid fa-shield-halved"></i> Run Instant Link Test
+                </a>
+            </div>
+
+            <!-- Top Section Split Card -->
+            <div class="card">
+                <div class="top-section">
+                    
+                    <!-- Left: Gauge Area with Non-Tech Tooltips -->
+                    <div class="gauge-area">
+                        <div class="gauge-container">
+                            <svg class="gauge-svg" viewBox="0 0 400 400">
+                                <path class="gauge-path-bg" d="M 50,300 A 150 150 0 1 1 350,300" />
+                                <path class="gauge-path-fill" d="M 50,300 A 150 150 0 1 1 350,300" stroke-dasharray="720" stroke-dashoffset="110" />
+                            </svg>
+
+                            <!-- Stat Bubbles Overlay with Tooltips for Non-Tech Users -->
+                            <div class="gauge-inner-circles">
+                                
+                                <div class="stat-bubble">
+                                    <div class="bubble-value up">15%<i class="fa-solid fa-angle-up"></i></div>
+                                    <div class="bubble-label">Macros</div>
+                                    <div class="bubble-tooltip"><b>Windows Macros</b><br>Malicious Office attachments designed to run hidden scripts when opened.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value down">7%<i class="fa-solid fa-angle-down"></i></div>
+                                    <div class="bubble-label">DDoS</div>
+                                    <div class="bubble-tooltip"><b>DDoS Attack</b><br>Flooding servers with fake web traffic to bring websites down.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value up">17%<i class="fa-solid fa-angle-up"></i></div>
+                                    <div class="bubble-label">XML</div>
+                                    <div class="bubble-tooltip"><b>XML Poisoning</b><br>Manipulating web data inputs to crash or bypass authentication filters.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value down">23%<i class="fa-solid fa-angle-down"></i></div>
+                                    <div class="bubble-label">Passwords</div>
+                                    <div class="bubble-tooltip"><b>Password Theft</b><br>Phishing login pages engineered to steal user credentials.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value up">8%<i class="fa-solid fa-angle-up"></i></div>
+                                    <div class="bubble-label">Company</div>
+                                    <div class="bubble-tooltip"><b>Target Profile</b><br>Vulnerability scaling based on company user base size.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value down">3%<i class="fa-solid fa-angle-down"></i></div>
+                                    <div class="bubble-label">Malvertise</div>
+                                    <div class="bubble-tooltip"><b>Malvertising</b><br>Infected web banner advertisements that auto-download adware.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value up">6%<i class="fa-solid fa-angle-up"></i></div>
+                                    <div class="bubble-label">Buffer</div>
+                                    <div class="bubble-tooltip"><b>Buffer Overflow</b><br>Memory security flaws used to execute unauthorized code.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value up">13%<i class="fa-solid fa-angle-up"></i></div>
+                                    <div class="bubble-label">Shadowing</div>
+                                    <div class="bubble-tooltip"><b>Domain Shadowing</b><br>Creating hidden fake subdomains under real brand web links.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value up">8%<i class="fa-solid fa-angle-up"></i></div>
+                                    <div class="bubble-label">SQL Inject</div>
+                                    <div class="bubble-tooltip"><b>SQL Injection</b><br>Database tricks used by hackers to extract sensitive user tables.</div>
+                                </div>
+
+                                <div class="stat-bubble">
+                                    <div class="bubble-value down">32%<i class="fa-solid fa-angle-down"></i></div>
+                                    <div class="bubble-label">AJAX Code</div>
+                                    <div class="bubble-tooltip"><b>Malicious AJAX</b><br>Hidden background web browser scripts altering target page content.</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Middle: Plain-English Score Box -->
+                    <div class="score-display">
+                        <div class="score-value">85<span>/100</span></div>
+                        <div class="score-label">Overall Defense Score</div>
+                        <div class="score-status-tag"><i class="fa-solid fa-circle-check"></i> Excellent Health</div>
+                    </div>
+
+                    <!-- Right: Interactive Chart Area -->
+                    <div class="chart-area">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <h4 id="chart-heading-title">Security Trend Analysis</h4>
+                            </div>
+                            <div class="chart-tabs">
+                                <div class="chart-tab active" id="tab-org" onclick="switchChartTab('org')">Organization</div>
+                                <div class="chart-tab" id="tab-phish" onclick="switchChartTab('phish')">Phishing Threats</div>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <svg viewBox="0 0 500 200" preserveAspectRatio="none" id="chart-svg-elem">
+                                <defs>
+                                    <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+                                        <stop offset="0%" stop-color="rgba(37, 99, 235, 0.25)" />
+                                        <stop offset="100%" stop-color="rgba(37, 99, 235, 0)" />
+                                    </linearGradient>
+                                </defs>
+                                <path class="chart-fill" id="chart-path-fill" d="M0,150 L20,120 L40,140 L60,110 L80,130 L100,100 L120,90 L140,110 L160,80 L180,95 L200,110 L220,130 L240,115 L260,95 L280,105 L300,60 L310,40 L320,50 L330,65 L340,60 L350,90 L370,120 L390,140 L410,125 L430,95 L450,115 L470,100 L490,130 L500,100 L500,200 L0,200 Z" />
+                                <path class="chart-line" id="chart-path-line" d="M0,150 L20,120 L40,140 L60,110 L80,130 L100,100 L120,90 L140,110 L160,80 L180,95 L200,110 L220,130 L240,115 L260,95 L280,105 L300,60 L310,40 L320,50 L330,65 L340,60 L350,90 L370,120 L390,140 L410,125 L430,95 L450,115 L470,100 L490,130 L500,100" />
+                            </svg>
+                        </div>
+                        <div class="chart-axis-x">
+                            <span>Week 2</span>
+                            <span>Week 4</span>
+                            <span>Week 6</span>
+                            <span>Week 8</span>
+                            <span>Week 10</span>
+                            <span>Week 12</span>
+                            <span>Week 14</span>
+                            <span>Week 16</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Bottom Section: Live Phishing Simulations -->
+            <div class="card">
+                <div class="live-section">
+                    <div class="live-header">
+                        <div class="live-title"><i class="fa-solid fa-globe" style="color: #2563eb;"></i> Live Phishing Simulations Right Now</div>
+                        <div class="live-controls">
+                            <button class="live-btn" onclick="scrollSimulations(-200)" title="Previous"><i class="fa-solid fa-angle-left"></i></button>
+                            <button class="live-btn" onclick="scrollSimulations(200)" title="Next"><i class="fa-solid fa-angle-right"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="live-campaigns" id="simulations-container">
+                        <!-- Main Campaign -->
+                        <div class="campaign-main">
+                            <div class="campaign-icon">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </div>
+                            <div class="campaign-info">
+                                <div class="campaign-name">Corporate Security Campaign</div>
+                                <div class="campaign-date"><i class="fa-regular fa-calendar"></i> Active Audit Cycle</div>
+                            </div>
+                        </div>
+
+                        <!-- Simulation Cards -->
+                        <div class="simulation-item" onclick="alert('Simulation #1: Bank Login Phish — Passed by 94% of employees.')">
+                            <div class="sim-name"><i class="fa-solid fa-envelope" style="color: #2563eb;"></i> #1 Simulation</div>
+                            <div class="sim-date">Bank Link Spoof</div>
+                        </div>
+
+                        <div class="simulation-item" onclick="alert('Simulation #2: Password Reset Bait — Passed by 89% of employees.')">
+                            <div class="sim-name"><i class="fa-solid fa-key" style="color: #f59e0b;"></i> #2 Simulation</div>
+                            <div class="sim-date">Password Bait</div>
+                        </div>
+
+                        <div class="simulation-item" onclick="alert('Simulation #3: Urgent SMS Text Scam — Passed by 92% of employees.')">
+                            <div class="sim-name"><i class="fa-solid fa-comment-sms" style="color: #ef4444;"></i> #3 Simulation</div>
+                            <div class="sim-date">SMS Urgency</div>
+                        </div>
+
+                        <div class="simulation-item" onclick="alert('Simulation #4: Gift Card Scam — Passed by 96% of employees.')">
+                            <div class="sim-name"><i class="fa-solid fa-gift" style="color: #10b981;"></i> #4 Simulation</div>
+                            <div class="sim-date">Reward Bait</div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function handleDashSearch(input) {
+        const query = input.value.toLowerCase().trim();
+        const bubbles = document.querySelectorAll('.stat-bubble');
+        bubbles.forEach(b => {
+            const text = b.innerText.toLowerCase();
+            if (!query || text.includes(query)) {
+                b.style.opacity = '1';
+                b.style.transform = 'scale(1)';
+            } else {
+                b.style.opacity = '0.2';
+                b.style.transform = 'scale(0.85)';
+            }
+        });
+    }
+
+    function switchChartTab(tab) {
+        const tabOrg = document.getElementById('tab-org');
+        const tabPhish = document.getElementById('tab-phish');
+        const line = document.getElementById('chart-path-line');
+        const fill = document.getElementById('chart-path-fill');
+
+        if (tab === 'org') {
+            tabOrg.classList.add('active');
+            tabPhish.classList.remove('active');
+            line.setAttribute('d', 'M0,150 L20,120 L40,140 L60,110 L80,130 L100,100 L120,90 L140,110 L160,80 L180,95 L200,110 L220,130 L240,115 L260,95 L280,105 L300,60 L310,40 L320,50 L330,65 L340,60 L350,90 L370,120 L390,140 L410,125 L430,95 L450,115 L470,100 L490,130 L500,100');
+            fill.setAttribute('d', 'M0,150 L20,120 L40,140 L60,110 L80,130 L100,100 L120,90 L140,110 L160,80 L180,95 L200,110 L220,130 L240,115 L260,95 L280,105 L300,60 L310,40 L320,50 L330,65 L340,60 L350,90 L370,120 L390,140 L410,125 L430,95 L450,115 L470,100 L490,130 L500,100 L500,200 L0,200 Z');
+        } else {
+            tabPhish.classList.add('active');
+            tabOrg.classList.remove('active');
+            line.setAttribute('d', 'M0,180 L20,160 L40,130 L60,150 L80,110 L100,140 L120,120 L140,90 L160,110 L180,70 L200,85 L220,60 L240,80 L260,50 L280,75 L300,45 L310,30 L320,40 L330,25 L340,40 L350,55 L370,80 L390,110 L410,90 L430,60 L450,80 L470,50 L490,70 L500,40');
+            fill.setAttribute('d', 'M0,180 L20,160 L40,130 L60,150 L80,110 L100,140 L120,120 L140,90 L160,110 L180,70 L200,85 L220,60 L240,80 L260,50 L280,75 L300,45 L310,30 L320,40 L330,25 L340,40 L350,55 L370,80 L390,110 L410,90 L430,60 L450,80 L470,50 L490,70 L500,40 L500,200 L0,200 Z');
+        }
+    }
+
+    function scrollSimulations(amount) {
+        const container = document.getElementById('simulations-container');
+        container.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
