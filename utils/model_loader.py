@@ -1,6 +1,9 @@
 import os
 import joblib
+import logging
 from config import Config
+
+logger = logging.getLogger('phishguard')
 
 _URL_MODEL = None
 _MSG_MODEL = None
@@ -15,7 +18,7 @@ def load_url_model():
             try:
                 _URL_MODEL = joblib.load(model_path)
             except Exception as e:
-                print(f"[ERROR] Failed to load URL model: {e}")
+                logger.error(f"Failed to load URL model: {e}")
                 _URL_MODEL = None
     return _URL_MODEL
 
@@ -32,7 +35,7 @@ def load_message_model():
                 _MSG_MODEL = joblib.load(model_path)
                 _VECTORIZER = joblib.load(vec_path)
             except Exception as e:
-                print(f"[ERROR] Failed to load Message model or vectorizer: {e}")
+                logger.error(f"Failed to load Message model or vectorizer: {e}")
                 _MSG_MODEL, _VECTORIZER = None, None
                 
     return _MSG_MODEL, _VECTORIZER

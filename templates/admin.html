@@ -1,0 +1,827 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-container" style="max-width: 1400px; margin: 0 auto; padding-bottom: 3rem;">
+
+    <!-- Top Header Row -->
+    <div class="admin-header-row">
+        <div class="admin-title-group">
+            <h1>
+                <i class="fa-solid fa-shield-virus" style="color: #4f46e5;"></i>
+                SOC Admin Control Center
+                <span class="admin-badge">SOC Level 2</span>
+            </h1>
+            <div class="admin-subtitle">
+                Centralized telemetry, user authorization governance, and global cyber incident response.
+            </div>
+        </div>
+
+        <div class="admin-header-actions">
+            <div class="soc-live-indicator">
+                <span class="soc-pulse-dot"></span>
+                <span>SOC Telemetry Live</span>
+            </div>
+            <button id="btn-refresh-admin" class="admin-btn-sm btn-primary" onclick="refreshAllAdminData()">
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Platform KPI Overview Cards -->
+    <div class="admin-stats-grid">
+        <!-- Total Users Card -->
+        <div class="admin-stat-card stat-indigo">
+            <div class="admin-stat-icon">
+                <i class="fa-solid fa-users-gear"></i>
+            </div>
+            <div class="admin-stat-info">
+                <div class="admin-stat-label">Protected Users</div>
+                <div class="admin-stat-value" id="kpi-total-users">{{ stats.total_users }}</div>
+                <div class="admin-stat-sub">
+                    <span style="color: #16a34a; font-weight: 600;" id="kpi-active-users">{{ stats.active_users }} active</span> accounts
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Assets Analyzed Card -->
+        <div class="admin-stat-card stat-blue">
+            <div class="admin-stat-icon">
+                <i class="fa-solid fa-radar"></i>
+            </div>
+            <div class="admin-stat-info">
+                <div class="admin-stat-label">Total Scans Performed</div>
+                <div class="admin-stat-value" id="kpi-total-scans">{{ stats.total_scans }}</div>
+                <div class="admin-stat-sub">
+                    <span id="kpi-url-scans">{{ stats.url_scans_count }}</span> URLs &bull; <span id="kpi-msg-scans">{{ stats.message_scans_count }}</span> Messages
+                </div>
+            </div>
+        </div>
+
+        <!-- High-Risk Threats Card -->
+        <div class="admin-stat-card stat-red">
+            <div class="admin-stat-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="admin-stat-info">
+                <div class="admin-stat-label">Malicious Threats Neutralized</div>
+                <div class="admin-stat-value" id="kpi-high-threats">{{ stats.high_risk_count }}</div>
+                <div class="admin-stat-sub">
+                    <span style="color: #dc2626; font-weight: 600;">High-Severity</span> cyber payloads
+                </div>
+            </div>
+        </div>
+
+        <!-- Platform Threat Detection Rate -->
+        <div class="admin-stat-card stat-amber">
+            <div class="admin-stat-icon">
+                <i class="fa-solid fa-gauge-high"></i>
+            </div>
+            <div class="admin-stat-info">
+                <div class="admin-stat-label">Malicious Threat Ratio</div>
+                <div class="admin-stat-value" id="kpi-threat-rate">{{ stats.threat_rate }}%</div>
+                <div class="admin-stat-sub">
+                    <span id="kpi-safe-count">{{ stats.safe_count }}</span> clean assets cleared
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="admin-tabs">
+        <button class="admin-tab-btn active" onclick="switchAdminTab('overview', this)">
+            <i class="fa-solid fa-chart-pie"></i> Threat Intelligence & Health
+        </button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('users', this)">
+            <i class="fa-solid fa-user-shield"></i> User & Identity Management
+        </button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('scans', this)">
+            <i class="fa-solid fa-clock-rotate-left"></i> Global Threat Incident Log
+        </button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('diagnostics', this)">
+            <i class="fa-solid fa-microchip"></i> System Telemetry & Diagnostics
+        </button>
+    </div>
+
+    <!-- TAB 1: THREAT INTELLIGENCE OVERVIEW & HEALTH -->
+    <div id="panel-overview" class="admin-tab-panel active">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem;">
+            
+            <!-- Threat Severity Distribution -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div class="admin-card-title">
+                        <i class="fa-solid fa-shield-halved" style="color: #4f46e5;"></i> Threat Severity Distribution
+                    </div>
+                </div>
+
+                <div class="threat-dist-row">
+                    <div class="threat-dist-labels">
+                        <span style="color: #dc2626;"><i class="fa-solid fa-circle" style="font-size: 0.6rem;"></i> High Risk / Phishing</span>
+                        <span id="label-high-count">{{ stats.high_risk_count }} payloads</span>
+                    </div>
+                    <div class="threat-dist-bar">
+                        <div id="bar-high" class="threat-dist-segment" style="background: #ef4444; width: {% if stats.total_scans > 0 %}{{ (stats.high_risk_count / stats.total_scans * 100)|round(1) }}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+
+                <div class="threat-dist-row">
+                    <div class="threat-dist-labels">
+                        <span style="color: #d97706;"><i class="fa-solid fa-circle" style="font-size: 0.6rem;"></i> Suspicious Anomalies</span>
+                        <span id="label-susp-count">{{ stats.suspicious_count }} payloads</span>
+                    </div>
+                    <div class="threat-dist-bar">
+                        <div id="bar-susp" class="threat-dist-segment" style="background: #f59e0b; width: {% if stats.total_scans > 0 %}{{ (stats.suspicious_count / stats.total_scans * 100)|round(1) }}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+
+                <div class="threat-dist-row">
+                    <div class="threat-dist-labels">
+                        <span style="color: #16a34a;"><i class="fa-solid fa-circle" style="font-size: 0.6rem;"></i> Legitimate & Safe</span>
+                        <span id="label-safe-count">{{ stats.safe_count }} payloads</span>
+                    </div>
+                    <div class="threat-dist-bar">
+                        <div id="bar-safe" class="threat-dist-segment" style="background: #10b981; width: {% if stats.total_scans > 0 %}{{ (stats.safe_count / stats.total_scans * 100)|round(1) }}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 8px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6;">
+                    <i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i>
+                    <strong>Detection Insight:</strong> High-risk threats trigger automatic alerting and behavioral fingerprinting across the 20 lexical URL vectors and NLP intent classification models.
+                </div>
+            </div>
+
+            <!-- Asset Vector Breakdown -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div class="admin-card-title">
+                        <i class="fa-solid fa-diagram-project" style="color: #3b82f6;"></i> Asset Vector Distribution
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="flex: 1; padding: 1.25rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; text-align: center;">
+                        <i class="fa-solid fa-link" style="color: #0284c7; font-size: 1.6rem; margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 1.6rem; font-weight: 800; color: #0369a1;" id="vector-url-count">{{ stats.url_scans_count }}</div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #0284c7;">URL & Domain Scans</div>
+                    </div>
+                    <div style="flex: 1; padding: 1.25rem; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 12px; text-align: center;">
+                        <i class="fa-solid fa-comment-sms" style="color: #9333ea; font-size: 1.6rem; margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 1.6rem; font-weight: 800; color: #7e22ce;" id="vector-msg-count">{{ stats.message_scans_count }}</div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #9333ea;">SMS & Text Scans</div>
+                    </div>
+                </div>
+
+                <div class="threat-dist-row">
+                    <div class="threat-dist-labels">
+                        <span>Vector Proportions</span>
+                        <span>URLs vs Text Messages</span>
+                    </div>
+                    <div class="threat-dist-bar">
+                        <div id="bar-vector-url" class="threat-dist-segment" style="background: #0284c7; width: {% if stats.total_scans > 0 %}{{ (stats.url_scans_count / stats.total_scans * 100)|round(1) }}{% else %}50{% endif %}%;"></div>
+                        <div id="bar-vector-msg" class="threat-dist-segment" style="background: #9333ea; width: {% if stats.total_scans > 0 %}{{ (stats.message_scans_count / stats.total_scans * 100)|round(1) }}{% else %}50{% endif %}%;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.2rem; font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                    <span><i class="fa-solid fa-square" style="color: #0284c7;"></i> URLs</span>
+                    <span><i class="fa-solid fa-square" style="color: #9333ea;"></i> SMS / Text</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TAB 2: USER & IDENTITY MANAGEMENT -->
+    <div id="panel-users" class="admin-tab-panel">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <div class="admin-card-title">
+                    <i class="fa-solid fa-users" style="color: #4f46e5;"></i> Registered Identity Directory
+                </div>
+                <div>
+                    <span id="user-count-badge" class="admin-badge">Loading users...</span>
+                </div>
+            </div>
+
+            <!-- User Filter & Search -->
+            <div class="admin-filter-bar">
+                <input type="text" id="user-search-input" class="admin-search-input" placeholder="Search accounts by email address..." oninput="handleUserSearch(this.value)">
+                <button class="admin-btn-sm" onclick="fetchAdminUsers()">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh List
+                </button>
+            </div>
+
+            <!-- User Table -->
+            <div class="admin-table-container">
+                <table class="admin-table" id="admin-user-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">ID</th>
+                            <th>Email Account</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Total Scans</th>
+                            <th>High-Risk Hits</th>
+                            <th>Last Active</th>
+                            <th style="text-align: right;">Administrative Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Loading account records...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: GLOBAL THREAT INCIDENT AUDIT LOG -->
+    <div id="panel-scans" class="admin-tab-panel">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <div class="admin-card-title">
+                    <i class="fa-solid fa-list-check" style="color: #ef4444;"></i> Global Cyber Incident & Audit Log
+                </div>
+                <div id="scans-count-badge" class="admin-badge">0 Incidents</div>
+            </div>
+
+            <!-- Scans Filter Bar -->
+            <div class="admin-filter-bar">
+                <input type="text" id="scan-search-input" class="admin-search-input" placeholder="Search submitted domain, text excerpt, or user email..." oninput="handleScanSearch()">
+                
+                <select id="scan-type-filter" class="admin-select" onchange="fetchAdminScans()">
+                    <option value="all">All Asset Vectors</option>
+                    <option value="url">URLs Only</option>
+                    <option value="message">Messages Only</option>
+                </select>
+
+                <select id="scan-risk-filter" class="admin-select" onchange="fetchAdminScans()">
+                    <option value="all">All Risk Levels</option>
+                    <option value="High">High Risk</option>
+                    <option value="Medium">Medium Risk</option>
+                    <option value="Low">Low Risk</option>
+                </select>
+
+                <select id="scan-sort-filter" class="admin-select" onchange="fetchAdminScans()">
+                    <option value="date_desc">Newest First</option>
+                    <option value="date_asc">Oldest First</option>
+                    <option value="risk_desc">Highest Risk Score</option>
+                </select>
+
+                <button class="admin-btn-sm" onclick="fetchAdminScans()">
+                    <i class="fa-solid fa-filter"></i> Apply
+                </button>
+            </div>
+
+            <!-- Scan Table -->
+            <div class="admin-table-container">
+                <table class="admin-table" id="admin-scans-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 140px;">Timestamp</th>
+                            <th>Submitting User</th>
+                            <th style="width: 90px;">Vector</th>
+                            <th>Analyzed Payload Content</th>
+                            <th style="width: 110px;">Classification</th>
+                            <th style="width: 130px;">Threat Score</th>
+                            <th style="text-align: right; width: 140px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scans-table-body">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Loading incident feed...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: SYSTEM TELEMETRY & DIAGNOSTICS -->
+    <div id="panel-diagnostics" class="admin-tab-panel">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <div class="admin-card-title">
+                    <i class="fa-solid fa-server" style="color: #6366f1;"></i> Core Engine Diagnostics & Integrity
+                </div>
+                <button class="admin-btn-sm btn-primary" onclick="fetchSystemHealth()">
+                    <i class="fa-solid fa-bolt"></i> Ping Subsystems
+                </button>
+            </div>
+
+            <div class="diag-grid">
+                <!-- Database Health -->
+                <div class="diag-item">
+                    <div class="diag-item-title">
+                        <i class="fa-solid fa-database" style="color: #3b82f6;"></i> Database Subsystem
+                    </div>
+                    <div class="diag-item-value" id="diag-db-status">Online</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;" id="diag-db-details">
+                        File: {{ stats.database_file or 'phishguard.db' }} &bull; SQLite
+                    </div>
+                </div>
+
+                <!-- URL Classifier Model -->
+                <div class="diag-item">
+                    <div class="diag-item-title">
+                        <i class="fa-solid fa-brain" style="color: #8b5cf6;"></i> URL Random Forest Classifier
+                    </div>
+                    <div class="diag-item-value" id="diag-url-model" style="color: #16a34a;">
+                        <i class="fa-solid fa-circle-check"></i> Operational
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">
+                        20 Lexical Features &bull; scikit-learn
+                    </div>
+                </div>
+
+                <!-- Message NLP Model -->
+                <div class="diag-item">
+                    <div class="diag-item-title">
+                        <i class="fa-solid fa-message" style="color: #ec4899;"></i> SMS NLP Classifier & Vectorizer
+                    </div>
+                    <div class="diag-item-value" id="diag-msg-model" style="color: #16a34a;">
+                        <i class="fa-solid fa-circle-check"></i> Operational
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">
+                        MultinomialNB + TF-IDF Vectorizer
+                    </div>
+                </div>
+
+                <!-- Security Middleware -->
+                <div class="diag-item">
+                    <div class="diag-item-title">
+                        <i class="fa-solid fa-shield-cat" style="color: #10b981;"></i> Security Hardening
+                    </div>
+                    <div class="diag-item-value" style="color: #16a34a;">
+                        Active
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">
+                        Rate Limiter &bull; Nosniff &bull; Frame-Options
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- THREAT INSPECTION MODAL -->
+<div id="admin-inspect-modal" class="admin-modal-backdrop" onclick="closeInspectModal(event)">
+    <div class="admin-modal" onclick="event.stopPropagation()">
+        <div class="admin-modal-header">
+            <div class="admin-modal-title">
+                <i class="fa-solid fa-microscope" style="color: #4f46e5;"></i> Incident Forensic Analysis
+            </div>
+            <button class="admin-modal-close" onclick="closeInspectModal()">&times;</button>
+        </div>
+        <div class="admin-modal-body" id="inspect-modal-content">
+            <!-- Populated dynamically via JS -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// --- TAB SWITCHING ---
+function switchAdminTab(tabKey, btnElement) {
+    document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.remove('active'));
+
+    if (btnElement) btnElement.classList.add('active');
+    const panel = document.getElementById('panel-' + tabKey);
+    if (panel) panel.classList.add('active');
+
+    // Trigger lazy loading
+    if (tabKey === 'users') fetchAdminUsers();
+    if (tabKey === 'scans') fetchAdminScans();
+    if (tabKey === 'diagnostics') fetchSystemHealth();
+}
+
+// Global cached scan data for inspector modal
+let currentScansData = [];
+let scanSearchTimeout = null;
+
+// --- LOADERS & API CALLS ---
+async function fetchAdminStats() {
+    try {
+        const res = await fetch('/api/admin/stats');
+        const data = await res.json();
+        if (data.status === 'success') {
+            const s = data.stats;
+            document.getElementById('kpi-total-users').textContent = s.total_users;
+            document.getElementById('kpi-active-users').textContent = s.active_users + ' active';
+            document.getElementById('kpi-total-scans').textContent = s.total_scans;
+            document.getElementById('kpi-url-scans').textContent = s.url_scans_count;
+            document.getElementById('kpi-msg-scans').textContent = s.message_scans_count;
+            document.getElementById('kpi-high-threats').textContent = s.high_risk_count;
+            document.getElementById('kpi-threat-rate').textContent = s.threat_rate + '%';
+            document.getElementById('kpi-safe-count').textContent = s.safe_count;
+
+            document.getElementById('label-high-count').textContent = s.high_risk_count + ' payloads';
+            document.getElementById('label-susp-count').textContent = s.suspicious_count + ' payloads';
+            document.getElementById('label-safe-count').textContent = s.safe_count + ' payloads';
+
+            if (s.total_scans > 0) {
+                document.getElementById('bar-high').style.width = ((s.high_risk_count / s.total_scans) * 100).toFixed(1) + '%';
+                document.getElementById('bar-susp').style.width = ((s.suspicious_count / s.total_scans) * 100).toFixed(1) + '%';
+                document.getElementById('bar-safe').style.width = ((s.safe_count / s.total_scans) * 100).toFixed(1) + '%';
+
+                document.getElementById('bar-vector-url').style.width = ((s.url_scans_count / s.total_scans) * 100).toFixed(1) + '%';
+                document.getElementById('bar-vector-msg').style.width = ((s.message_scans_count / s.total_scans) * 100).toFixed(1) + '%';
+            }
+            document.getElementById('vector-url-count').textContent = s.url_scans_count;
+            document.getElementById('vector-msg-count').textContent = s.message_scans_count;
+        }
+    } catch (err) {
+        console.error('Failed to load admin stats:', err);
+    }
+}
+
+// Fetch Users Directory
+async function fetchAdminUsers(searchQuery = '') {
+    const tbody = document.getElementById('user-table-body');
+    try {
+        const url = searchQuery ? `/api/admin/users?search=${encodeURIComponent(searchQuery)}` : '/api/admin/users';
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'success') {
+            document.getElementById('user-count-badge').textContent = `${data.total_users} Users`;
+            if (data.users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">No user accounts match the search query.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.users.map(u => `
+                <tr>
+                    <td style="font-weight: 700; color: var(--text-secondary); font-size: 0.8rem;">#${u.user_id}</td>
+                    <td style="font-weight: 600;">
+                        <i class="fa-regular fa-envelope" style="color: var(--text-muted); margin-right: 0.35rem;"></i>
+                        ${escapeHtml(u.email)}
+                    </td>
+                    <td>
+                        <span class="${u.role === 'admin' ? 'badge-role-admin' : 'badge-role-user'}">
+                            ${u.role}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="${u.is_active ? 'badge-status-active' : 'badge-status-suspended'}">
+                            <i class="fa-solid ${u.is_active ? 'fa-check' : 'fa-ban'}"></i>
+                            ${u.is_active ? 'Active' : 'Suspended'}
+                        </span>
+                    </td>
+                    <td style="font-weight: 600;">${u.total_scans}</td>
+                    <td>
+                        <span style="font-weight: 700; color: ${u.high_risk_scans > 0 ? '#ef4444' : '#16a34a'};">
+                            ${u.high_risk_scans}
+                        </span>
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-secondary);">${u.last_login}</td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button class="admin-btn-sm ${u.is_active ? 'btn-danger' : 'btn-primary'}" onclick="toggleUserStatus(${u.user_id}, ${u.is_active})">
+                            <i class="fa-solid ${u.is_active ? 'fa-user-slash' : 'fa-user-check'}"></i>
+                            ${u.is_active ? 'Suspend' : 'Activate'}
+                        </button>
+                        <button class="admin-btn-sm" style="margin-left: 0.35rem;" onclick="toggleUserRole(${u.user_id}, '${u.role}')">
+                            <i class="fa-solid fa-crown" style="color: #f59e0b;"></i>
+                            ${u.role === 'admin' ? 'Demote' : 'Promote'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 2rem;">Error fetching user accounts: ${err.message}</td></tr>`;
+    }
+}
+
+// User Actions
+let userSearchTimeout = null;
+function handleUserSearch(val) {
+    clearTimeout(userSearchTimeout);
+    userSearchTimeout = setTimeout(() => {
+        fetchAdminUsers(val);
+    }, 300);
+}
+
+async function toggleUserStatus(userId, currentIsActive) {
+    const actionText = currentIsActive ? 'suspend' : 'activate';
+    if (!confirm(`Are you sure you want to ${actionText} user #${userId}?`)) return;
+
+    try {
+        const res = await fetch(`/api/admin/users/${userId}/toggle-status`, { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showAdminToast(data.message, 'success');
+            fetchAdminUsers();
+            fetchAdminStats();
+        } else {
+            showAdminToast(data.message || 'Operation failed', 'error');
+        }
+    } catch (err) {
+        showAdminToast('Network error: ' + err.message, 'error');
+    }
+}
+
+async function toggleUserRole(userId, currentRole) {
+    const newRoleText = currentRole === 'admin' ? 'standard user' : 'administrator';
+    if (!confirm(`Change user #${userId}'s permissions to ${newRoleText}?`)) return;
+
+    try {
+        const res = await fetch(`/api/admin/users/${userId}/toggle-role`, { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showAdminToast(data.message, 'success');
+            fetchAdminUsers();
+        } else {
+            showAdminToast(data.message || 'Role change failed', 'error');
+        }
+    } catch (err) {
+        showAdminToast('Network error: ' + err.message, 'error');
+    }
+}
+
+// Fetch Global Scans Audit Log
+async function fetchAdminScans() {
+    const tbody = document.getElementById('scans-table-body');
+    const type = document.getElementById('scan-type-filter').value;
+    const risk = document.getElementById('scan-risk-filter').value;
+    const sort = document.getElementById('scan-sort-filter').value;
+    const search = document.getElementById('scan-search-input').value.trim();
+
+    try {
+        const params = new URLSearchParams({
+            type: type,
+            risk_level: risk,
+            sort_by: sort,
+            search: search,
+            limit: 100
+        });
+
+        const res = await fetch(`/api/admin/scans?${params.toString()}`);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            currentScansData = data.scans;
+            document.getElementById('scans-count-badge').textContent = `${data.total_count} Incidents`;
+
+            if (data.scans.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No scan incidents match the specified filters.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.scans.map(s => {
+                const isHigh = s.score > 70;
+                const isMed = s.score > 30 && s.score <= 70;
+                const riskBadge = isHigh ? 'badge-risk-high' : (isMed ? 'badge-risk-medium' : 'badge-risk-low');
+                const typeBadge = s.type === 'url' ? 'badge-type-url' : 'badge-type-msg';
+                const meterColor = isHigh ? '#ef4444' : (isMed ? '#f59e0b' : '#10b981');
+
+                return `
+                    <tr>
+                        <td style="font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(s.timestamp)}</td>
+                        <td style="font-size: 0.85rem; font-weight: 600;">
+                            <i class="fa-regular fa-user" style="color: var(--text-muted); margin-right: 0.25rem;"></i>
+                            ${escapeHtml(s.user_email)}
+                        </td>
+                        <td>
+                            <span class="${typeBadge}">
+                                <i class="fa-solid ${s.type === 'url' ? 'fa-link' : 'fa-comment-dots'}"></i>
+                                ${s.type.toUpperCase()}
+                            </span>
+                        </td>
+                        <td style="max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; font-size: 0.82rem;">
+                            ${escapeHtml(s.content)}
+                        </td>
+                        <td>
+                            <span class="${riskBadge}">
+                                ${escapeHtml(s.classification)}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="flex-grow: 1; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                                    <div style="height: 100%; width: ${s.score}%; background: ${meterColor};"></div>
+                                </div>
+                                <span style="font-weight: 700; font-size: 0.82rem; color: ${meterColor}; width: 38px; text-align: right;">${s.score}%</span>
+                            </div>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button class="admin-btn-sm" onclick="inspectScan('${s.id}')">
+                                <i class="fa-solid fa-magnifying-glass"></i> Inspect
+                            </button>
+                            <button class="admin-btn-sm btn-danger" style="margin-left: 0.25rem;" onclick="deleteAdminScan('${s.id}')">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 2rem;">Error fetching incident logs: ${err.message}</td></tr>`;
+    }
+}
+
+function handleScanSearch() {
+    clearTimeout(scanSearchTimeout);
+    scanSearchTimeout = setTimeout(() => {
+        fetchAdminScans();
+    }, 300);
+}
+
+// Delete Scan as Admin
+async function deleteAdminScan(scanId) {
+    if (!confirm(`Permanently remove scan record ${scanId} from the central audit log?`)) return;
+
+    try {
+        const res = await fetch(`/api/admin/scans/${scanId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showAdminToast(data.message, 'success');
+            fetchAdminScans();
+            fetchAdminStats();
+        } else {
+            showAdminToast(data.message || 'Deletion failed', 'error');
+        }
+    } catch (err) {
+        showAdminToast('Error: ' + err.message, 'error');
+    }
+}
+
+// Inspect Modal
+function inspectScan(scanId) {
+    const scan = currentScansData.find(s => s.id === scanId);
+    if (!scan) return;
+
+    const modalBody = document.getElementById('inspect-modal-content');
+    const isHigh = scan.score > 70;
+    const isMed = scan.score > 30 && scan.score <= 70;
+    const badgeClass = isHigh ? 'badge-risk-high' : (isMed ? 'badge-risk-medium' : 'badge-risk-low');
+
+    let forensicDetails = '';
+    if (scan.type === 'url') {
+        const explItems = Array.isArray(scan.explanation) ? scan.explanation : [];
+        forensicDetails = `
+            <div style="margin-top: 1rem;">
+                <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-dark);">
+                    <i class="fa-solid fa-fingerprint" style="color: #4f46e5;"></i> Lexical & Deep Indicators (${explItems.length})
+                </h4>
+                ${explItems.length > 0 ? `
+                    <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                        ${explItems.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+                    </ul>
+                ` : '<div style="font-size: 0.85rem; color: var(--text-muted);">No hostile lexical indicators detected.</div>'}
+            </div>
+        `;
+    } else {
+        const patterns = Array.isArray(scan.detected_patterns) ? scan.detected_patterns : [];
+        forensicDetails = `
+            <div style="margin-top: 1rem;">
+                <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-dark);">
+                    <i class="fa-solid fa-bullseye" style="color: #ec4899;"></i> Social Engineering Pattern Signatures (${patterns.length})
+                </h4>
+                ${patterns.length > 0 ? `
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                        ${patterns.map(p => `<span class="admin-badge" style="background: #fee2e2; color: #dc2626;">${escapeHtml(p)}</span>`).join('')}
+                    </div>
+                ` : '<div style="font-size: 0.85rem; color: var(--text-muted);">No scam trigger signatures detected.</div>'}
+            </div>
+        `;
+    }
+
+    modalBody.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+            <div>
+                <span class="badge-role-admin" style="font-size: 0.75rem;">${scan.id}</span>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.35rem;">
+                    Submitting Account: <strong>${escapeHtml(scan.user_email)}</strong>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <span class="${badgeClass}" style="font-size: 0.85rem; padding: 0.3rem 0.75rem;">${escapeHtml(scan.classification)} (${scan.score}%)</span>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">${escapeHtml(scan.timestamp)}</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Raw Payload String:</label>
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem; font-family: monospace; font-size: 0.85rem; word-break: break-all; margin-top: 0.3rem;">
+                ${escapeHtml(scan.content)}
+            </div>
+        </div>
+
+        ${forensicDetails}
+
+        <div style="margin-top: 1.5rem; text-align: right;">
+            <button class="admin-btn-sm" onclick="closeInspectModal()">Close Details</button>
+            <button class="admin-btn-sm btn-danger" style="margin-left: 0.5rem;" onclick="closeInspectModal(); deleteAdminScan('${scan.id}')">
+                <i class="fa-solid fa-trash-can"></i> Purge From Audit
+            </button>
+        </div>
+    `;
+
+    document.getElementById('admin-inspect-modal').classList.add('open');
+}
+
+function closeInspectModal(e) {
+    document.getElementById('admin-inspect-modal').classList.remove('open');
+}
+
+// System Health
+async function fetchSystemHealth() {
+    try {
+        const res = await fetch('/api/admin/system-health');
+        const data = await res.json();
+        if (data.status === 'success') {
+            const h = data.health;
+            document.getElementById('diag-db-status').innerHTML = `<span style="color: #16a34a;"><i class="fa-solid fa-circle-check"></i> ${h.status} (${h.database_size_kb} KB)</span>`;
+            document.getElementById('diag-db-details').textContent = `File: ${h.database_file} • SQLite v${h.sqlite_version}`;
+
+            const urlEl = document.getElementById('diag-url-model');
+            if (h.url_model_loaded) {
+                urlEl.innerHTML = `<span style="color: #16a34a;"><i class="fa-solid fa-circle-check"></i> Online</span>`;
+            } else {
+                urlEl.innerHTML = `<span style="color: #f59e0b;"><i class="fa-solid fa-triangle-exclamation"></i> Rule-Based Fallback</span>`;
+            }
+
+            const msgEl = document.getElementById('diag-msg-model');
+            if (h.message_model_loaded) {
+                msgEl.innerHTML = `<span style="color: #16a34a;"><i class="fa-solid fa-circle-check"></i> Online</span>`;
+            } else {
+                msgEl.innerHTML = `<span style="color: #f59e0b;"><i class="fa-solid fa-triangle-exclamation"></i> Heuristic Fallback</span>`;
+            }
+            showAdminToast('Telemetry metrics refreshed successfully', 'success');
+        }
+    } catch (err) {
+        showAdminToast('Failed to ping subsystems: ' + err.message, 'error');
+    }
+}
+
+// Global Refresh
+function refreshAllAdminData() {
+    fetchAdminStats();
+    fetchAdminUsers();
+    fetchAdminScans();
+    fetchSystemHealth();
+    showAdminToast('All SOC telemetry feeds refreshed', 'success');
+}
+
+// Notification Toast Helper
+function showAdminToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'dash-card';
+    toast.style.cssText = `
+        padding: 0.85rem 1.25rem;
+        margin-bottom: 0.5rem;
+        background: #ffffff;
+        border-left: 4px solid ${type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#3b82f6')};
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.88rem;
+        animation: fadeInPanel 0.2s ease;
+    `;
+    toast.innerHTML = `
+        <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : (type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info')}" style="color: ${type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#3b82f6')};"></i>
+        <span>${escapeHtml(message)}</span>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+// Utility: HTML escaping
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Initial Run
+document.addEventListener('DOMContentLoaded', () => {
+    fetchAdminStats();
+    fetchAdminUsers();
+    fetchAdminScans();
+});
+</script>
+{% endblock %}

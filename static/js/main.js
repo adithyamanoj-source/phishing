@@ -166,7 +166,9 @@ async function handleUrlScanSubmit(e) {
             score: data.risk_score,
             classification: data.classification,
             riskLevel: data.risk_level,
-            explanation: data.explanation
+            explanation: data.explanation,
+            featureBreakdown: data.feature_breakdown || [],
+            deepAnalysis: data.deep_analysis || null
         };
 
         currentActiveResult = result;
@@ -289,24 +291,222 @@ function renderScanResults(result) {
         }
     }
 
-    // Render Explanations
+    // Render Categorized Explanations
     const container = document.getElementById('factor-list-container');
     container.innerHTML = '';
 
+    // Group explanations by category
+    const categoryMap = {};
     result.explanation.forEach(item => {
-        const factorDiv = document.createElement('div');
-        factorDiv.className = `factor-item ${item.type === 'warning' ? 'warning' : ''}`;
-        
-        const iconColor = item.type === 'warning' ? 'red' : 'green';
-        const iconName = item.type === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-check';
-        
-        factorDiv.innerHTML = `
-            <i class="fa-solid ${iconName} factor-icon ${iconColor}"></i>
-            <span style="font-size: 0.85rem; color: var(--text-secondary);">${item.text}</span>
-        `;
-        container.appendChild(factorDiv);
+        const cat = item.category || 'General';
+        if (!categoryMap[cat]) categoryMap[cat] = [];
+        categoryMap[cat].push(item);
     });
+
+    const categoryIcons = {
+        'Protocol': 'fa-lock',
+        'Domain': 'fa-globe',
+        'Brand': 'fa-copyright',
+        'Lexical': 'fa-spell-check',
+        'Structure': 'fa-sitemap',
+        'Reputation': 'fa-database',
+        'Certificate': 'fa-certificate',
+        'DNS': 'fa-server',
+        'Redirects': 'fa-arrows-turn-right',
+        'General': 'fa-circle-info'
+    };
+
+    const typeStyles = {
+        'danger':  { icon: 'fa-skull-crossbones', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', label: 'CRITICAL' },
+        'warning': { icon: 'fa-triangle-exclamation', color: '#d97706', bg: '#fffbeb', border: '#fde68a', label: 'WARNING' },
+        'info':    { icon: 'fa-circle-info', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', label: 'INFO' },
+        'safe':    { icon: 'fa-circle-check', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0', label: 'SAFE' }
+    };
+
+    Object.entries(categoryMap).forEach(([category, items]) => {
+        const catIcon = categoryIcons[category] || 'fa-circle-info';
+        
+        const groupDiv = document.createElement('div');
+        groupDiv.style.cssText = 'margin-bottom: 1rem;';
+        
+        // Category header
+        groupDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border-color);">
+                <i class="fa-solid ${catIcon}" style="color: var(--color-primary); font-size: 0.8rem;"></i>
+                <span style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">${category} Analysis</span>
+            </div>
+        `;
+
+        items.forEach(item => {
+            const style = typeStyles[item.type] || typeStyles['info'];
+            const factorDiv = document.createElement('div');
+            factorDiv.style.cssText = `
+                display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.6rem 0.75rem;
+                margin-bottom: 0.35rem; border-radius: 8px; background: ${style.bg};
+                border: 1px solid ${style.border}; transition: transform 0.15s ease;
+            `;
+            factorDiv.innerHTML = `
+                <i class="fa-solid ${style.icon}" style="color: ${style.color}; font-size: 0.85rem; margin-top: 0.15rem; flex-shrink: 0;"></i>
+                <div style="flex: 1;">
+                    <span style="font-size: 0.82rem; color: ${style.color}; font-weight: 700; margin-right: 0.35rem;">${style.label}</span>
+                    <span style="font-size: 0.82rem; color: var(--text-primary);">${item.text}</span>
+                </div>
+            `;
+            groupDiv.appendChild(factorDiv);
+        });
+
+        container.appendChild(groupDiv);
+    });
+
+    // Render Feature Breakdown Table (URL scans only)
+    const featureContainer = document.getElementById('feature-breakdown-container');
+    if (featureContainer && result.type === 'url' && result.featureBreakdown && result.featureBreakdown.length > 0) {
+        featureContainer.style.display = 'block';
+        
+        let tableHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                <h4 style="font-size: 0.9rem; color: var(--text-dark);">
+                    <i class="fa-solid fa-table-cells" style="color: var(--color-primary);"></i> 20-Feature Lexical Breakdown
+                </h4>
+                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Tier 1 — No Network Calls</span>
+            </div>
+            <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; padding: 0.5rem 0.6rem; color: var(--text-secondary); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid var(--border-color);">#</th>
+                        <th style="text-align: left; padding: 0.5rem 0.6rem; color: var(--text-secondary); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid var(--border-color);">Feature</th>
+                        <th style="text-align: right; padding: 0.5rem 0.6rem; color: var(--text-secondary); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid var(--border-color);">Value</th>
+                        <th style="text-align: center; padding: 0.5rem 0.6rem; color: var(--text-secondary); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid var(--border-color);">Signal</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        // Feature indices that are "bad" when their value is high or 1
+        const dangerWhenHigh = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 18, 19];
+        // Feature indices that are "good" when their value is high or 1
+        const safeWhenHigh = [12, 15]; // Levenshtein (high = far from brand = good), HTTPS
+
+        result.featureBreakdown.forEach((feat, idx) => {
+            let signal = '—';
+            let signalColor = 'var(--text-muted)';
+            const val = feat.value;
+
+            if (dangerWhenHigh.includes(idx)) {
+                // Boolean features
+                if ([4, 5, 6, 8, 9, 11, 13, 14, 19].includes(idx)) {
+                    if (val === 1) { signal = '⚠ Risk'; signalColor = '#d97706'; }
+                    else { signal = '✓ OK'; signalColor = '#059669'; }
+                }
+                // Count/continuous features
+                else if (idx === 7 && val >= 3) { signal = '⚠ Risk'; signalColor = '#d97706'; }
+                else if (idx === 10 && val >= 2) { signal = '⚠ Risk'; signalColor = '#d97706'; }
+                else if (idx === 0 && val > 75) { signal = '⚠ Long'; signalColor = '#d97706'; }
+                else if (idx === 18 && val > 4.0) { signal = '⚠ High'; signalColor = '#d97706'; }
+                else { signal = '✓ OK'; signalColor = '#059669'; }
+            } else if (safeWhenHigh.includes(idx)) {
+                if (idx === 15) {
+                    signal = val === 1 ? '✓ Secure' : '⚠ Insecure';
+                    signalColor = val === 1 ? '#059669' : '#d97706';
+                } else if (idx === 12) {
+                    if (val <= 1) { signal = '⚠ Typosquat'; signalColor = '#dc2626'; }
+                    else if (val <= 2) { signal = '⚠ Similar'; signalColor = '#d97706'; }
+                    else { signal = '✓ Unique'; signalColor = '#059669'; }
+                }
+            }
+
+            const displayValue = Number.isInteger(val) ? val : val.toFixed(2);
+
+            tableHTML += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 0.4rem 0.6rem; color: var(--text-muted); font-family: var(--font-mono, monospace);">${idx}</td>
+                    <td style="padding: 0.4rem 0.6rem; color: var(--text-primary); font-weight: 600;">${feat.name}</td>
+                    <td style="padding: 0.4rem 0.6rem; text-align: right; font-family: var(--font-mono, monospace); font-weight: 700; color: var(--text-dark);">${displayValue}</td>
+                    <td style="padding: 0.4rem 0.6rem; text-align: center; font-weight: 700; font-size: 0.75rem; color: ${signalColor};">${signal}</td>
+                </tr>
+            `;
+        });
+
+        tableHTML += '</tbody></table></div>';
+        featureContainer.innerHTML = tableHTML;
+    } else if (featureContainer) {
+        featureContainer.style.display = 'none';
+    }
+
+    // Render Deep Analysis Details (when available for URL scans)
+    const deepContainer = document.getElementById('deep-analysis-container');
+    if (deepContainer && result.deepAnalysis) {
+        deepContainer.style.display = 'block';
+        let deepHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                <h4 style="font-size: 0.9rem; color: var(--text-dark);">
+                    <i class="fa-solid fa-microscope" style="color: var(--color-accent);"></i> Tier 2-3 Deep Link Verification
+                </h4>
+                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">SSL · DNS · Redirects</span>
+            </div>
+        `;
+
+        // SSL Info
+        const ssl = result.deepAnalysis.ssl;
+        if (ssl && Object.keys(ssl).length > 0) {
+            const sslColor = ssl.ssl_valid ? '#059669' : '#dc2626';
+            const sslIcon = ssl.ssl_valid ? 'fa-lock' : 'fa-lock-open';
+            deepHTML += `
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.35rem;">
+                        <i class="fa-solid ${sslIcon}" style="color: ${sslColor};"></i> SSL Certificate
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.3rem; font-size: 0.75rem;">
+                        <span style="color: var(--text-muted);">Valid:</span><span style="font-weight: 600; color: ${sslColor};">${ssl.ssl_valid ? 'Yes' : 'No'}</span>
+                        <span style="color: var(--text-muted);">Issuer:</span><span style="font-weight: 600;">${ssl.ssl_issuer || 'N/A'}</span>
+                        <span style="color: var(--text-muted);">Days Remaining:</span><span style="font-weight: 600;">${ssl.ssl_days_remaining >= 0 ? ssl.ssl_days_remaining : 'Expired'}</span>
+                        <span style="color: var(--text-muted);">Subject Match:</span><span style="font-weight: 600;">${ssl.ssl_subject_match ? '✓' : '✗'}</span>
+                    </div>
+                    ${ssl.ssl_error ? `<div style="color: #dc2626; font-size: 0.72rem; margin-top: 0.3rem;">Error: ${ssl.ssl_error}</div>` : ''}
+                </div>
+            `;
+        }
+
+        // DNS Info
+        const dns = result.deepAnalysis.dns;
+        if (dns && Object.keys(dns).length > 0) {
+            deepHTML += `
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.35rem;">
+                        <i class="fa-solid fa-server" style="color: var(--color-primary);"></i> DNS Resolution
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.3rem; font-size: 0.75rem;">
+                        <span style="color: var(--text-muted);">Resolves:</span><span style="font-weight: 600; color: ${dns.dns_resolves ? '#059669' : '#dc2626'};">${dns.dns_resolves ? 'Yes' : 'No'}</span>
+                        <span style="color: var(--text-muted);">IP Count:</span><span style="font-weight: 600;">${dns.dns_ip_count || 0}</span>
+                    </div>
+                    ${dns.dns_resolved_ips && dns.dns_resolved_ips.length > 0 ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">IPs: ${dns.dns_resolved_ips.join(', ')}</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Redirect Chain Info
+        const redirects = result.deepAnalysis.redirects;
+        if (redirects && Object.keys(redirects).length > 0 && redirects.chain_length > 0) {
+            deepHTML += `
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.35rem;">
+                        <i class="fa-solid fa-arrows-turn-right" style="color: #d97706;"></i> Redirect Chain (${redirects.chain_length} hops)
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-secondary);">
+                        ${redirects.chain ? redirects.chain.map((u, i) => `<div style="padding: 0.15rem 0;"><span style="color: var(--text-muted);">${i === 0 ? '→' : '  ↳'}</span> <span style="font-family: var(--font-mono, monospace); word-break: break-all;">${u.length > 80 ? u.substring(0, 77) + '...' : u}</span></div>`).join('') : 'No data'}
+                    </div>
+                    ${redirects.crosses_domains ? '<div style="color: #dc2626; font-size: 0.72rem; font-weight: 700; margin-top: 0.3rem;">⚠ Crosses domain boundaries</div>' : ''}
+                </div>
+            `;
+        }
+
+        deepContainer.innerHTML = deepHTML;
+    } else if (deepContainer) {
+        deepContainer.style.display = 'none';
+    }
 }
+
 
 // Copy report to clipboard
 function copyReportToClipboard() {

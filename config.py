@@ -7,7 +7,9 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 class Config:
     BASE_DIR = BASE_DIR
     # Flask Security Cryptography Key
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'phishguard-development-token-37492817')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise ValueError("No SECRET_KEY set for Flask application. Please configure it in your environment.")
     
     # Database Configuration (Defaults to SQLite in root dir)
     DATABASE_URL = os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(BASE_DIR, 'phishguard.db')}")
@@ -19,6 +21,6 @@ class Config:
     
     # Session & Security configurations
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    SESSION_COOKIE_SECURE = True  # Enforced for production with HTTPS
     SESSION_COOKIE_SAMESITE = 'Lax'
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 1024 * 1024)) # 1MB limit

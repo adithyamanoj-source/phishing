@@ -37,6 +37,12 @@
                     <a href="/history"><i class="fa-solid fa-clock-rotate-left"></i></a>
                     <span class="tooltip">Scan History Audit</span>
                 </div>
+                {% if current_user.is_authenticated and current_user.is_admin %}
+                <div class="sidebar-item {% if active_page == 'admin' %}active{% endif %}">
+                    <a href="/admin"><i class="fa-solid fa-shield-virus" style="color: #818cf8;"></i></a>
+                    <span class="tooltip">SOC Admin Center</span>
+                </div>
+                {% endif %}
             </div>
         </aside>
 
@@ -68,10 +74,18 @@
                     <a href="/history" class="topbar-link {% if active_page == 'history' %}active{% endif %}">
                         <i class="fa-solid fa-clock-rotate-left"></i> History
                     </a>
+                    {% if current_user.is_authenticated and current_user.is_admin %}
+                    <a href="/admin" class="topbar-link {% if active_page == 'admin' %}active{% endif %}" style="color: #4f46e5; font-weight: 700;">
+                        <i class="fa-solid fa-shield-virus"></i> Admin SOC
+                    </a>
+                    {% endif %}
 
                     {% if current_user.is_authenticated %}
-                        <span style="color: var(--text-secondary); font-size: 0.85rem; margin-left: 0.5rem;">
+                        <span style="color: var(--text-secondary); font-size: 0.85rem; margin-left: 0.5rem; display: inline-flex; align-items: center; gap: 0.35rem;">
                             <i class="fa-regular fa-circle-user"></i> {{ current_user.email }}
+                            {% if current_user.is_admin %}
+                            <span style="background: #4f46e5; color: #ffffff; padding: 0.12rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Admin</span>
+                            {% endif %}
                         </span>
                         <a href="/logout" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
                             <i class="fa-solid fa-right-from-bracket"></i> Logout

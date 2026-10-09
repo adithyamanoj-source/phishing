@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login TIMESTAMP NULL,
-  is_active BOOLEAN DEFAULT 1
+  is_active BOOLEAN DEFAULT 1,
+  role VARCHAR(20) DEFAULT 'user'
 );
 
 CREATE TABLE IF NOT EXISTS url_scans (

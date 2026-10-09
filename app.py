@@ -10,11 +10,14 @@ from config import Config
 from utils.database import (
     init_db, get_db, close_db, create_user, get_user_by_email,
     update_last_login, save_url_scan, save_message_scan,
-    get_user_scans, delete_user_scan, get_user_stats
+    get_user_scans, delete_user_scan, get_user_stats,
+    get_admin_overview_stats, get_all_users, toggle_user_status,
+    toggle_user_role, get_global_scans, delete_scan_as_admin, get_system_health_info
 )
-from utils.auth import User, hash_password, verify_password
+from utils.auth import User, hash_password, verify_password, admin_required
 from utils.validators import validate_url, validate_message, validate_email, validate_password
-from utils.feature_extraction import extract_url_features, get_url_explanation
+from utils.feature_extraction import extract_url_features, get_url_explanation, rule_based_phishing_score, FEATURE_NAMES
+from utils.link_verifier import deep_link_analysis
 from utils.preprocessing import preprocess_message, detect_message_patterns
 from utils.model_loader import load_url_model, load_message_model
 from utils.logging_config import setup_logging
@@ -170,6 +173,7 @@ def api_analyze_url():
     if not valid:
         return jsonify({"status": "error", "message": msg}), 400
 
+    # ─── Tier 1: Extract 20 Lexical Features ───
     features = extract_url_features(url)
     model = load_url_model()
 
@@ -179,11 +183,33 @@ def api_analyze_url():
             score = round(prob * 100, 2)
         except Exception as e:
             logger.error(f"URL model prediction error: {e}")
-            score = 50.0
+            score = rule_based_phishing_score(features)
     else:
-        # Fallback to feature rule calculation if model file missing
-        score = min(10.0 + (features[0] * 0.2) + (features[3] * 15.0) + (features[6] * 20.0), 100.0)
+        # Fallback to rule-based weighted scoring if model file missing
+        score = rule_based_phishing_score(features)
 
+    # ─── Tier 1: Generate Lexical Explanations ───
+    explanation = get_url_explanation(url, features, score / 100.0)
+
+    # ─── Tier 2-3: Deep Analysis for Borderline Scores ───
+    deep_analysis = None
+    if 25 < score < 75:
+        try:
+            deep_result = deep_link_analysis(url)
+            deep_analysis = {
+                'ssl': deep_result.get('ssl', {}),
+                'dns': deep_result.get('dns', {}),
+                'redirects': deep_result.get('redirects', {}),
+            }
+            # Extend explanations with deep indicators
+            explanation.extend(deep_result.get('deep_indicators', []))
+            # Adjust score based on deep analysis
+            adjustment = deep_result.get('deep_risk_adjustment', 0.0)
+            score = round(max(0, min(100, score + adjustment)), 2)
+        except Exception as e:
+            logger.warning(f"Deep link analysis failed for {url}: {e}")
+
+    # ─── Classification ───
     if score > 70:
         classification = 'Phishing'
         risk_level = 'High'
@@ -194,7 +220,14 @@ def api_analyze_url():
         classification = 'Legitimate'
         risk_level = 'Low'
 
-    explanation = get_url_explanation(url, features, score / 100.0)
+    # ─── Feature Breakdown (for detailed UI display) ───
+    feature_breakdown = []
+    for i, (name, value) in enumerate(zip(FEATURE_NAMES, features)):
+        feature_breakdown.append({
+            'name': name,
+            'value': float(value),
+            'index': i
+        })
 
     scan_id = None
     if current_user.is_authenticated:
@@ -211,6 +244,8 @@ def api_analyze_url():
         "risk_score": score,
         "risk_level": risk_level,
         "explanation": explanation,
+        "feature_breakdown": feature_breakdown,
+        "deep_analysis": deep_analysis,
         "scan_id": scan_id
     })
 
@@ -313,13 +348,118 @@ def api_user_stats():
     stats = get_user_stats(current_user.id)
     return jsonify({"status": "success", "stats": stats})
 
+# --- SOC ADMIN CONTROL CENTER ROUTES ---
+
+@app.route('/admin')
+@admin_required
+def admin_panel():
+    stats = get_admin_overview_stats()
+    return render_template('admin.html', active_page='admin', stats=stats)
+
+
+@app.route('/api/admin/stats', methods=['GET'])
+@admin_required
+def api_admin_stats():
+    stats = get_admin_overview_stats()
+    return jsonify({"status": "success", "stats": stats})
+
+
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def api_admin_users():
+    search = request.args.get('search', '').strip()
+    users = get_all_users(search=search if search else None)
+    return jsonify({"status": "success", "users": users, "total_users": len(users)})
+
+
+@app.route('/api/admin/users/<int:user_id>/toggle-status', methods=['POST'])
+@admin_required
+def api_admin_toggle_user_status(user_id):
+    if current_user.id == user_id:
+        return jsonify({"status": "error", "message": "You cannot disable your own administrator account."}), 400
+    res = toggle_user_status(user_id)
+    if res.get('success'):
+        logger.info(f"Admin {current_user.email} changed user_id={user_id} active status to {res.get('is_active')}")
+        return jsonify({"status": "success", "is_active": res.get('is_active'), "message": "User status updated successfully."})
+    return jsonify({"status": "error", "message": res.get('message', 'Failed to update user status')}), 400
+
+
+@app.route('/api/admin/users/<int:user_id>/toggle-role', methods=['POST'])
+@admin_required
+def api_admin_toggle_user_role(user_id):
+    if current_user.id == user_id:
+        return jsonify({"status": "error", "message": "You cannot change your own administrator role."}), 400
+    res = toggle_user_role(user_id)
+    if res.get('success'):
+        logger.info(f"Admin {current_user.email} changed user_id={user_id} role to {res.get('role')}")
+        return jsonify({"status": "success", "role": res.get('role'), "message": f"User role changed to {res.get('role')}."})
+    return jsonify({"status": "error", "message": res.get('message', 'Failed to update user role')}), 400
+
+
+@app.route('/api/admin/scans', methods=['GET'])
+@admin_required
+def api_admin_scans():
+    scan_type = request.args.get('type', 'all')
+    risk_level = request.args.get('risk_level', 'all')
+    sort_by = request.args.get('sort_by', 'date_desc')
+    search = request.args.get('search', '').strip()
+    limit = int(request.args.get('limit', 100))
+
+    scans = get_global_scans(
+        scan_type=scan_type,
+        risk_level=risk_level,
+        sort_by=sort_by,
+        limit=limit,
+        search=search if search else None
+    )
+    return jsonify({
+        "status": "success",
+        "scans": scans,
+        "total_count": len(scans)
+    })
+
+
+@app.route('/api/admin/scans/<scan_id>', methods=['DELETE'])
+@admin_required
+def api_admin_delete_scan(scan_id):
+    success = delete_scan_as_admin(scan_id)
+    if success:
+        logger.info(f"Admin {current_user.email} deleted scan record {scan_id}")
+        return jsonify({"status": "success", "message": "Scan record permanently purged from audit logs."})
+    return jsonify({"status": "error", "message": "Record not found or already removed."}), 404
+
+
+@app.route('/api/admin/system-health', methods=['GET'])
+@admin_required
+def api_admin_system_health():
+    url_model = load_url_model()
+    msg_model, vec = load_message_model()
+    health = get_system_health_info()
+    health['url_model_loaded'] = url_model is not None
+    health['message_model_loaded'] = msg_model is not None and vec is not None
+    return jsonify({"status": "success", "health": health})
+
+
 # Initialise DB schema on startup
 with app.app_context():
     init_db(app)
 
 if __name__ == '__main__':
+    import socket
+    def get_network_ip():
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            return "127.0.0.1"
+
+    lan_ip = get_network_ip()
     print("--------------------------------------------------")
     print("  PhishGuard AI Production Backend Server Online  ")
-    print("  Server Listening at: http://localhost:5000")
+    print("  Local Access:   http://localhost:5000")
+    print(f"  Wi-Fi Network:  http://{lan_ip}:5000")
     print("--------------------------------------------------")
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=False)
